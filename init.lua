@@ -5,52 +5,111 @@
 
 
 
+-- local walrus_brain = function(self)
+
+-- 	if self.hp <= 0 then	
+-- 		mob_core.on_die(self)
+-- 		return
+-- 	end
+
+-- 	local pos = mobkit.get_stand_pos(self)
+-- 	local prty = mobkit.get_queue_priority(self)
+-- 	local player = mobkit.get_nearby_player(self)
+
+-- 	mob_core.random_sound(self, 16/self.dtime)
+
+-- 	if mobkit.timer(self,1) then
+-- 		mob_core.vitals(self)
+-- 		mob_core.growth(self)
+-- 		if self.status ~= "following" then
+--             if self.attention_span > 1 then
+--                 self.attention_span = self.attention_span - 1
+--                 mobkit.remember(self, "attention_span", self.attention_span)
+--             end
+-- 		else
+-- 			self.attention_span = self.attention_span + 1
+-- 			mobkit.remember(self, "attention_span", self.attention_span)
+-- 		end
+
+-- 		if prty < 3
+--         and self.breeding then
+--             better_fauna.hq_breed(self, 3)
+-- 		end
+		
+--         if prty < 2
+--         and player then
+--             if self.attention_span < 5 then
+--                 if mob_core.follow_holding(self, player) then
+--                     better_fauna.hq_follow_player(self, 2, player)
+--                     self.attention_span = self.attention_span + 1
+--                 end
+--             end
+--         end
+
+-- 		if mobkit.is_queue_empty_high(self) then
+-- 			mob_core.hq_roam(self, 0)
+-- 		end
+-- 	end
+-- end
+
 local walrus_brain = function(self)
 
-	if self.hp <= 0 then	
-		mob_core.on_die(self)
-		return
-	end
+    if self.hp <= 0 then    
+        mob_core.on_die(self)
+        return
+    end
 
-	local pos = mobkit.get_stand_pos(self)
-	local prty = mobkit.get_queue_priority(self)
-	local player = mobkit.get_nearby_player(self)
+    local pos = mobkit.get_stand_pos(self)
+    local prty = mobkit.get_queue_priority(self)
+    local player = mobkit.get_nearby_player(self)
 
-	mob_core.random_sound(self, 16/self.dtime)
+    mob_core.random_sound(self, 16/self.dtime)
 
-	if mobkit.timer(self,1) then
-		mob_core.vitals(self)
-		mob_core.growth(self)
-		if self.status ~= "following" then
+    if mobkit.timer(self,1) then
+
+        mob_core.vitals(self)
+        mob_core.growth(self)
+
+        if self.status ~= "following" then
             if self.attention_span > 1 then
                 self.attention_span = self.attention_span - 1
                 mobkit.remember(self, "attention_span", self.attention_span)
             end
-		else
-			self.attention_span = self.attention_span + 1
-			mobkit.remember(self, "attention_span", self.attention_span)
-		end
+        else
+            self.attention_span = self.attention_span + 1
+            mobkit.remember(self, "attention_span", self.attention_span)
+        end
 
-		if prty < 3
-        and self.breeding then
-            better_fauna.hq_breed(self, 3)
-		end
-		
+        -- if prty < 3
+        -- and self.breeding
+        -- and self.isonground then
+        --     better_fauna.hq_breed(self, 3)
+        -- end
+        
         if prty < 2
         and player then
             if self.attention_span < 5 then
                 if mob_core.follow_holding(self, player) then
-                    better_fauna.hq_follow_player(self, 2, player)
+                    if self.isinliquid then
+                        mob_core.hq_follow_holding(self, 2, player)
+                    else
+                        mob_core.hq_aqua_follow_holding(self, 2, player)
+                    end
                     self.attention_span = self.attention_span + 1
                 end
             end
         end
 
-		if mobkit.is_queue_empty_high(self) then
-			mob_core.hq_roam(self, 0)
-		end
-	end
+        if mobkit.is_queue_empty_high(self) then
+            if self.isinliquid then
+                mob_core.hq_aqua_roam(self, 0, 3)
+            else
+                mob_core.hq_roam(self, 0)
+            end
+        end
+    end
 end
+
 
 
 
@@ -79,7 +138,14 @@ minetest.register_entity("mobs_walrus:walrus",{
 		run={range={x=55,y=95},speed=20,loop=true},	
 		stand={range={x=0,y=50},speed=15,loop=true},
 		punch={range={x=100,y=145},speed=15,loop=true},	-- single
-    },
+	},
+	
+
+	obstacle_avoidance_range = 0,
+	surface_avoidance_range = 0,
+	floor_avoidance_range = 1,
+
+
 	sounds = {
 		alter_child_pitch = true,
 		random = {								--variant, sound is chosen randomly
@@ -139,7 +205,7 @@ minetest.register_entity("mobs_walrus:walrus",{
 
 		},
 	},
-	max_speed = 2,					-- m/s
+	max_speed = 1,					-- m/s
     stepheight = 1.1,
     jump_height = 1.1,				-- nodes/meters
     buoyancy = .5,			-- (0,1) - portion of collisionbox submerged
@@ -155,6 +221,11 @@ minetest.register_entity("mobs_walrus:walrus",{
 	core_growth = false,
 	push_on_collide = true,
 	catch_with_net = true,
+
+
+
+
+
 	follow = {
 		"water_life:riverfish",
 		"water_life:piranha",
@@ -170,7 +241,7 @@ minetest.register_entity("mobs_walrus:walrus",{
     get_staticdata = mobkit.statfunc,
 	logic = walrus_brain,
 	on_rightclick = function(self, clicker)
-		if better_fauna.feed_tame(self, clicker, 1, false, true) then return end
+		if mob_core.feed_tame(self, clicker, 5, false, true) then return end
 		mob_core.protect(self, clicker, false)
 		mob_core.nametag(self, clicker, true)
 	end,
@@ -179,17 +250,81 @@ minetest.register_entity("mobs_walrus:walrus",{
 		--apply damage
 		mob_core.on_punch_basic(self, puncher, tool_capabilities, dir)
 		--if hurt, flee
-		if self.hp < 20 then
-			mob_core.on_punch_runaway(self, puncher, true , true)
-			--better_fauna.hq_sporadic_flee(self, 20, puncher)
+		if self.hp < 5 then
+
+			-- mob_core.on_punch_runaway(self, puncher, true , false)
+			if self.isinliquid then
+				mob_core.hq_swimfrom(self,10,puncher,3)
+			else
+				mobkit.hq_runfrom(self,10,puncher)
+			end
+			if math.random(1,3) == 1 then
+				mob_core.make_sound(luaent, 'random')
+			end
+			
+
+			local pos = self.object:get_pos()
+			local objs = minetest.get_objects_inside_radius(pos, self.view_range)
+			for n = 1, #objs do
+				local luaent = objs[n]:get_luaentity()
+				if luaent and luaent.name == self.name and luaent.owner == self.owner and mobkit.is_alive(luaent) then
+					if luaent.hp < 5 then
+						if luaent.isinliquid then
+							mob_core.hq_swimfrom(luaent,10,puncher,3)
+						else
+							mobkit.hq_runfrom(luaent,10,puncher)
+						end
+						if math.random(1,3) == 1 then
+							mob_core.make_sound(luaent, 'random')
+						end
+					end
+				end
+			end
+			
 		else
 			--attack
-			mob_core.on_punch_retaliate(self, puncher, true, true)
+			-- mob_core.on_punch_retaliate(self, puncher, true, false)
+			
+
+			local pos = self.object:get_pos()
+			local objs = minetest.get_objects_inside_radius(pos, self.view_range)
+			if self.isinliquid then
+				mob_core.hq_aqua_attack(self, 10, puncher, 3)
+			else
+				mob_core.hq_hunt(self, 10, puncher)
+			end
 			if math.random(1,3) == 1 then
 				mob_core.make_sound(self, 'war_cry')
 			else
 				mob_core.make_sound(self, 'attack')
-			-- mob_core.hq_hunt(self,20,puncher)
+			
+			end
+			
+			for n = 1, #objs do
+				
+				local luaent = objs[n]:get_luaentity()
+				if luaent and luaent.name == self.name and luaent.owner == self.owner and mobkit.is_alive(luaent) then
+					if luaent.hp > 5 then
+						if luaent.isinliquid then
+							mob_core.hq_aqua_attack(luaent, 10, puncher, 3)
+						else
+							mob_core.hq_hunt(luaent, 10, puncher)
+						end
+						if math.random(1,3) == 1 then
+							mob_core.make_sound(luaent, 'war_cry')
+						else
+							mob_core.make_sound(luaent, 'attack')
+						
+						end
+					end
+					
+				end
+			end
+			if math.random(1,3) == 1 then
+				mob_core.make_sound(self, 'war_cry')
+			else
+				mob_core.make_sound(self, 'attack')
+			
 			end
 		end
 	end,
