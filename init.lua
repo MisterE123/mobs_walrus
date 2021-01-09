@@ -241,9 +241,11 @@ minetest.register_entity("mobs_walrus:walrus",{
     get_staticdata = mobkit.statfunc,
 	logic = walrus_brain,
 	on_rightclick = function(self, clicker)
-		if mob_core.feed_tame(self, clicker, 5, false, true) then return end
+		if mob_core.feed_tame(self, clicker, 5, true, false) then return end
 		mob_core.protect(self, clicker, false)
 		mob_core.nametag(self, clicker, true)
+		mob_core.capture_mob(self, clicker, "better_fauna:net", 3, 1, false)
+		mob_core.capture_mob(self, clicker, "water_life:lasso", 3, 1, false)
 	end,
 	on_punch = function(self, puncher, _, tool_capabilities, dir)
 		mobkit.clear_queue_high(self)
@@ -259,7 +261,7 @@ minetest.register_entity("mobs_walrus:walrus",{
 				mobkit.hq_runfrom(self,10,puncher)
 			end
 			if math.random(1,3) == 1 then
-				mob_core.make_sound(luaent, 'random')
+				mob_core.make_sound(self, 'random')
 			end
 			
 
@@ -341,7 +343,7 @@ minetest.register_entity("mobs_walrus:walrus",{
 
 
 mob_core.register_spawn_egg("mobs_walrus:walrus", "171c18" ,"611d04")
-
+mob_core.register_set("mobs_walrus:walrus", "mobs_walrus_walrus1.png", true)
 mob_core.register_spawn({
 	name = "mobs_walrus:walrus",
 	nodes = {"default:snow", "default:ice"},
@@ -349,7 +351,7 @@ mob_core.register_spawn({
 	max_light = 20,
 	min_height = -31000,
 	max_height = 31000,
-	group = 5,
+	group = 10,
 	optional = {
 		biomes = {
 			"snowy_grassland",
@@ -374,7 +376,7 @@ mob_core.register_spawn({
 	max_light = 20,
 	min_height = -31000,
 	max_height = 31000,
-	group = 3,
+	group = 8,
 	optional = {
 		biomes = {
 			"snowy_grassland",
